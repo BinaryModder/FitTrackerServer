@@ -1,17 +1,17 @@
 package main
 
 import (
-	"github.com/binarymodder/fitness-tracker-server/internal/graph"
-	"log"
-	"net/http"
-	"os"
-
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/BinaryModder/FitTrackerServer/internal/db"
+	"github.com/BinaryModder/FitTrackerServer/internal/graph"
 	"github.com/vektah/gqlparser/v2/ast"
+	"log"
+	"net/http"
+	"os"
 )
 
 const defaultPort = "8080"
@@ -22,8 +22,17 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	database, err := db.InitDataBase()
 
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
+
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{
+		Resolvers: &graph.Resolver{
+			DB: database,
+		},
+	}))
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
@@ -40,4 +49,5 @@ func main() {
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+
 }
